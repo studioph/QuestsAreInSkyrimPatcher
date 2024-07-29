@@ -1,0 +1,18 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30330.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{345E9CC0-66F8-4EAA-A248-41D9DF15B8C7}") = "QuestsAreInSkyrimPatcher", "QuestsAreInSkyrimPatcher\QuestsAreInSkyrimPatcher.csproj", "{7BD0801D-78AF-4EF9-A6BE-83EC44A405FE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7BD0801D-78AF-4EF9-A6BE-83EC44A405FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BD0801D-78AF-4EF9-A6BE-83EC44A405FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BD0801D-78AF-4EF9-A6BE-83EC44A405FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BD0801D-78AF-4EF9-A6BE-83EC44A405FE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
