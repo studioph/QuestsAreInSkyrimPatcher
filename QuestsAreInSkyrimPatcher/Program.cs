@@ -1,7 +1,8 @@
+using CommandLine;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Synthesis;
 using Synthesis.Utils;
 using Synthesis.Utils.Quests;
 
@@ -10,13 +11,19 @@ namespace QuestsAreInSkyrimPatcher
     public class Program
     {
         private static readonly ModKey QAIS = ModKey.FromNameAndExtension("QuestsAreInSkyrim.esp");
-        private static readonly ModKey QAIS_USSEP = ModKey.FromNameAndExtension("QuestsAreInSkyrimUSSEP.esp");
-        private static readonly IEnumerable<ModKey> qaisVersions = new ModKey[]{QAIS_USSEP, QAIS};
+        private static readonly ModKey QAIS_USSEP = ModKey.FromNameAndExtension(
+            "QuestsAreInSkyrimUSSEP.esp"
+        );
+        private static readonly IEnumerable<ModKey> qaisVersions = new ModKey[]
+        {
+            QAIS_USSEP,
+            QAIS
+        };
 
         public static async Task<int> Main(string[] args)
         {
-            return await SynthesisPipeline.Instance
-                .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
+            return await SynthesisPipeline
+                .Instance.AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
                 .SetTypicalOpen(GameRelease.SkyrimSE, "QuestsAreInSkyrimPatcher.esp")
                 .AddRunnabilityCheck(state =>
                 {
@@ -33,11 +40,19 @@ namespace QuestsAreInSkyrimPatcher
                 return;
             }
 
-            var qaisFormList = qaisEsp.Mod.FormLists.Where(formList => formList.EditorID is not null)
+            var qaisFormList = qaisEsp
+                .Mod.FormLists.Where(formList => formList.EditorID is not null)
                 .Single(formList => formList.EditorID!.Equals("SkyrimHoldsFList"));
             var affectedQuests = qaisEsp.Mod.Quests;
 
-            var qaisCondition = QuestAliasConditionUtil.FindAliasCondition(affectedQuests.First(), condition => condition.Data.Reference.Equals(qaisFormList));
+            var qaisCondition = QuestAliasConditionUtil.FindAliasCondition(
+                affectedQuests.First(),
+                condition =>
+                    condition.Data.Function == Condition.Function.GetInCurrentLocFormList
+                    && condition
+                        .Data.Cast<IGetInCurrentLocFormListConditionDataGetter>()
+                        .FormList.Link.Equals(qaisFormList.ToLinkGetter())
+            );
 
             if (qaisCondition is null)
             {
