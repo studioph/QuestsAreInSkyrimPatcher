@@ -1,11 +1,11 @@
 {
-    "Nickname": "QuestsAreInSkyrimPatcher",
-    "Visibility": "Exclude",
-    "OneLineDescription": "Forwards Quests Are In Skyrim changes",
-    "LongDescription": "- Forwards the FormList condition from Quests Are In Skyrim to winning quest records",
-    "PreferredAutoVersioning": "Default",
-    "RequiredMods": [
-      "QuestsAreInSkyrimUSSEP.esp",
-      "QuestsAreInSkyrim.esp"
-    ]
-  }
+  "Nickname": "QuestsAreInSkyrimPatcher",
+  "Visibility": "Exclude",
+  "OneLineDescription": "Forwards Quests Are In Skyrim changes",
+  "LongDescription": "- Forwards the FormList condition from Quests Are In Skyrim to winning quest records",
+  "PreferredAutoVersioning": "Default",
+  "RequiredMods": [],
+  "TargetedReleases": [
+    "SkyrimSE"
+  ]
+}
