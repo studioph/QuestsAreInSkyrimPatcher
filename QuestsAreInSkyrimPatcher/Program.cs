@@ -27,40 +27,52 @@ namespace QuestsAreInSkyrimPatcher
                 .SetTypicalOpen(GameRelease.SkyrimSE, "QuestsAreInSkyrimPatcher.esp")
                 .AddRunnabilityCheck(state =>
                 {
-                    LoadOrderUtil.AssertListsAnyMod(state.LoadOrder, qaisVersions);
+                    state.LoadOrder.AssertListsAnyMod(qaisVersions);
                 })
                 .Run(args);
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            var qaisEsp = LoadOrderUtil.ResolvePluginVersion(state.LoadOrder, qaisVersions);
-            if (qaisEsp is null || qaisEsp!.Mod is null)
+            var qaisEsp = state.LoadOrder.ResolvePluginVersion(qaisVersions);
+            if (qaisEsp.Mod is null)
             {
+                Console.WriteLine($"WARNING: Unable to load {qaisEsp.FileName}, aborting");
                 return;
             }
 
             var qaisFormList = qaisEsp
                 .Mod.FormLists.Where(formList => formList.EditorID is not null)
                 .Single(formList => formList.EditorID!.Equals("SkyrimHoldsFList"));
+
+            if (qaisFormList is null)
+            {
+                Console.WriteLine("WARNING: Unable to locate QAIS FormList, aborting");
+                return;
+            }
             var affectedQuests = qaisEsp.Mod.Quests;
 
+            // See https://github.com/studioph/QuestsAreInSkyrimPatcher/issues/1
+            bool searchFunc(IConditionGetter condition) =>
+                condition.Data.Function == Condition.Function.GetInCurrentLocFormList
+                && condition
+                    .Data.Cast<IGetInCurrentLocFormListConditionDataGetter>()
+                    .FormList.Link.Equals(qaisFormList!.ToLinkGetter());
+
             var qaisCondition = QuestAliasConditionUtil.FindAliasCondition(
-                affectedQuests.First(),
-                condition =>
-                    condition.Data.Function == Condition.Function.GetInCurrentLocFormList
-                    && condition
-                        .Data.Cast<IGetInCurrentLocFormListConditionDataGetter>()
-                        .FormList.Link.Equals(qaisFormList.ToLinkGetter())
+                affectedQuests,
+                condition => searchFunc(condition) && !condition.Flags.HasFlag(Condition.Flag.OR)
             );
 
             if (qaisCondition is null)
             {
-                Console.WriteLine($"Unable to find QAIS condition in quest aliases");
+                Console.WriteLine(
+                    "WARNING: Unable to find QAIS condition in quest aliases, aborting"
+                );
                 return;
             }
 
-            var patcher = new QuestAliasConditionUtil(qaisCondition);
+            var patcher = new QuestAliasConditionUtil(qaisCondition, searchFunc);
             patcher.PatchAll(affectedQuests, state);
         }
     }
