@@ -6,24 +6,25 @@ using Mutagen.Bethesda.Skyrim;
 
 namespace Synthesis.Utils
 {
-    public class LoadOrderUtil
+    public static class LoadOrderUtil
     {
         // Resolves which version of a mod the user has in the load order given a list of possible versions/flavors of the plugin
         // Returns the first version of the plugin found
-        public static IModListing<ISkyrimModGetter>? ResolvePluginVersion(ILoadOrderGetter<IModListing<ISkyrimModGetter>> loadOrder, IEnumerable<ModKey> pluginVersions)
+        public static IModListing<ISkyrimModGetter> ResolvePluginVersion(this ILoadOrderGetter<IModListing<ISkyrimModGetter>> loadOrder, IEnumerable<ModKey> pluginVersions)
         {
             foreach (var pluginVersion in pluginVersions)
             {
                 if (loadOrder.ListsMod(pluginVersion)){
+                    Console.WriteLine($"Resolved plugin version {pluginVersion}");
                     return loadOrder.GetIfEnabled(pluginVersion);
                 }
             }
 
-            return null;
+            throw new MissingModException(pluginVersions, $"Unable to resolve plugin version from options: {pluginVersions}");
         }
 
         // Asserts that the load order contains any ModKey in the provided list
-        public static void AssertListsAnyMod(ILoadOrderGetter loadOrder, IEnumerable<ModKey> modKeys, string? message = null)
+        public static void AssertListsAnyMod(this ILoadOrderGetter loadOrder, IEnumerable<ModKey> modKeys, string? message = null)
         {
             foreach (var modKey in modKeys)
             {
