@@ -5,7 +5,7 @@ Synthesis patcher for [Quests are in Skyrim](https://www.nexusmods.com/skyrimspe
 ## Usage
 - Supports either version of the QAIS plugin (USSEP and non-USSEP)
 - Add to your Synthesis pipeline using the patcher browser
-- If you have multiple Syntheis groups, run this patcher in the same group as other patchers that also modify quests to ensure changes are merged properly.
+- If you have multiple Synthesis groups, run this patcher in the same group as other patchers that also modify quests to ensure changes are merged properly.
 - The patcher will log which quests and aliases it forwarded the condition to. These can be viewed in the Synthesis log files or in the UI itself.
 
 **NOTE**: There are some quests where QAIS adds an `OR` condition that effectively ignores the Formlist check which will result in quests outside of Skyrim. Pending a mod update, this patcher does *not* forward that extra condition, just the formlist one. See the screenshots below for a better visual explanation.
