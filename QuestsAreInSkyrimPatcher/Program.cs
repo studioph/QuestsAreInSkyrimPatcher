@@ -1,25 +1,15 @@
-using CommandLine;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
-using Synthesis.Utils;
-using Synthesis.Utils.Quests;
+using Noggog;
+using Synthesis.Util;
+using Synthesis.Util.Quest;
 
 namespace QuestsAreInSkyrimPatcher
 {
     public class Program
     {
-        private static readonly ModKey QAIS = ModKey.FromNameAndExtension("QuestsAreInSkyrim.esp");
-        private static readonly ModKey QAIS_USSEP = ModKey.FromNameAndExtension(
-            "QuestsAreInSkyrimUSSEP.esp"
-        );
-        private static readonly IEnumerable<ModKey> qaisVersions = new ModKey[]
-        {
-            QAIS_USSEP,
-            QAIS
-        };
-
         public static async Task<int> Main(string[] args)
         {
             return await SynthesisPipeline
@@ -27,53 +17,81 @@ namespace QuestsAreInSkyrimPatcher
                 .SetTypicalOpen(GameRelease.SkyrimSE, "QuestsAreInSkyrimPatcher.esp")
                 .AddRunnabilityCheck(state =>
                 {
-                    state.LoadOrder.AssertListsAnyMod(qaisVersions);
+                    state.LoadOrder.AssertListsAnyMod(QAIS.Versions.Keys);
                 })
                 .Run(args);
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            var qaisEsp = state.LoadOrder.ResolvePluginVersion(qaisVersions);
-            if (qaisEsp.Mod is null)
-            {
-                Console.WriteLine($"WARNING: Unable to load {qaisEsp.FileName}, aborting");
-                return;
-            }
-
-            var qaisFormList = qaisEsp
-                .Mod.FormLists.Where(formList => formList.EditorID is not null)
-                .Single(formList => formList.EditorID!.Equals("SkyrimHoldsFList"));
-
-            if (qaisFormList is null)
-            {
-                Console.WriteLine("WARNING: Unable to locate QAIS FormList, aborting");
-                return;
-            }
-            var affectedQuests = qaisEsp.Mod.Quests;
+            var qaisMod = state.LoadOrder.ResolvePluginVersion(QAIS.Versions.Keys);
+            var qaisInfo = QAIS.Versions[qaisMod.ModKey];
 
             // See https://github.com/studioph/QuestsAreInSkyrimPatcher/issues/1
             bool searchFunc(IConditionGetter condition) =>
                 condition.Data.Function == Condition.Function.GetInCurrentLocFormList
-                && condition
-                    .Data.Cast<IGetInCurrentLocFormListConditionDataGetter>()
-                    .FormList.Link.Equals(qaisFormList!.ToLinkGetter());
+                && ((IGetInCurrentLocFormListConditionDataGetter)condition.Data).FormList.Equals(
+                    qaisInfo.FormList
+                );
 
-            var qaisCondition = QuestAliasConditionUtil.FindAliasCondition(
-                affectedQuests,
-                condition => searchFunc(condition) && !condition.Flags.HasFlag(Condition.Flag.OR)
+            var patcher = new QuestAliasConditionForwarder(qaisInfo.Condition, searchFunc);
+            var pipeline = new SkyrimForwardPipeline(state.PatchMod);
+
+            var questContexts = qaisMod.Quests.Select(quest =>
+                quest.WithContext<ISkyrimMod, ISkyrimModGetter, IQuest, IQuestGetter>(
+                    state.LinkCache
+                )
             );
 
-            if (qaisCondition is null)
-            {
-                Console.WriteLine(
-                    "WARNING: Unable to find QAIS condition in quest aliases, aborting"
-                );
-                return;
-            }
+            pipeline.Run(patcher, questContexts);
+        }
+    }
 
-            var patcher = new QuestAliasConditionUtil(qaisCondition, searchFunc);
-            patcher.PatchAll(affectedQuests, state);
+    /// <summary>
+    /// Random information about QAIS that can be predefined ahead of time
+    /// </summary>
+    internal class QAIS(ModKey modKey)
+    {
+        private static readonly ModKey QAIS_NonUSSEP = ModKey.FromNameAndExtension(
+            "QuestsAreInSkyrim.esp"
+        );
+        private static readonly ModKey QAIS_USSEP = ModKey.FromNameAndExtension(
+            "QuestsAreInSkyrimUSSEP.esp"
+        );
+
+        public static readonly IReadOnlyDictionary<ModKey, QAIS> Versions = new Dictionary<
+            ModKey,
+            QAIS
+        >()
+        {
+            { QAIS_USSEP, new(QAIS_USSEP) },
+            { QAIS_NonUSSEP, new(QAIS_NonUSSEP) }
+        };
+
+        /// <summary>
+        /// The QAIS formlist that locations get added to when cleared.
+        /// </summary>
+        public readonly IFormLinkGetter<IFormListGetter> FormList = FormKey
+            .Factory($"000D62:{modKey}")
+            .ToLinkGetter<IFormListGetter>();
+
+        /// <summary>
+        /// The QAIS formlist condition for Location quest aliases. This is what ensures quest locations are within Skyrim.
+        /// </summary>
+        public IConditionGetter Condition => BuildCondition();
+
+        /// <summary>
+        /// Creates a GetInCurrentLocFormList condition object referencing the QAIS formlist.
+        /// The condition isn't complex so it can be created up-front to avoid searching for it in the QAIS mod at runtime.
+        /// </summary>
+        /// <returns>A condition object that references the QAIS formlist</returns>
+        private IConditionGetter BuildCondition()
+        {
+            IConditionFloat condition = new ConditionFloat();
+            IGetInCurrentLocFormListConditionData data = new GetInCurrentLocFormListConditionData();
+            data.FormList.Link.SetTo(FormList);
+            condition.Data = (ConditionData)data;
+            return condition;
         }
     }
 }
