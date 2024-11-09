@@ -3,7 +3,7 @@
   "Visibility": "Visible",
   "OneLineDescription": "Forwards Quests Are In Skyrim changes",
   "LongDescription": "- Forwards the FormList condition from Quests Are In Skyrim to winning quest records. Both USSEP and non-USSEP versions supported.",
-  "PreferredAutoVersioning": "Default",
+  "PreferredAutoVersioning": "LatestTag",
   "RequiredMods": [],
   "TargetedReleases": [
     "SkyrimSE",
